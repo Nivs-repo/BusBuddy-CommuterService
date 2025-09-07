@@ -1,5 +1,5 @@
 # =========================
-# Azure DevOps Pipeline for Commuter Service
+# Azure DevOps Pipeline for Commuter Service (Self-hosted Agent)
 # =========================
 
 trigger:
@@ -28,9 +28,10 @@ stages:
     - job: BuildJob
       displayName: 'Build Commuter Service'
       pool:
-        vmImage: 'ubuntu-latest'
+        name: BusBuddyPool     
+        demands:
+          - agent.name -equals MyAgent   
       steps:
-        # Checkout code
         - checkout: self
 
         # Ensure JDK 17 is available
@@ -75,7 +76,9 @@ stages:
     - job: DeployDevJob
       displayName: 'Deploy to Dev/Test App Service'
       pool:
-        vmImage: 'ubuntu-latest'
+        name: BusBuddyPool
+        demands:
+          - agent.name -equals MyAgent
       steps:
         - task: DownloadBuildArtifacts@1
           inputs:
@@ -87,8 +90,8 @@ stages:
         - task: AzureWebApp@1
           displayName: 'Deploy to Dev/Test App Service'
           inputs:
-            azureSubscription: 'azure-busbuddy-connection'   # must match service connection name exactly
-            appName: 'commuter-service-app'                  # 👈 Dev/Test app service
+            azureSubscription: 'azure-busbuddy-connection'
+            appName: 'commuter-service-app'
             package: '$(Pipeline.Workspace)/$(artifactName)/*.jar'
 
 
@@ -103,7 +106,9 @@ stages:
     - job: DeployProdJob
       displayName: 'Deploy to Production App Service'
       pool:
-        vmImage: 'ubuntu-latest'
+        name: BusBuddyPool
+        demands:
+          - agent.name -equals MyAgent
       steps:
         - task: DownloadBuildArtifacts@1
           inputs:
@@ -115,6 +120,6 @@ stages:
         - task: AzureWebApp@1
           displayName: 'Deploy to Production App Service'
           inputs:
-            azureSubscription: 'azure-busbuddy-connection'   # must match service connection name exactly
-            appName: 'commuter-service-app'                 # 👈 Prod app service
+            azureSubscription: 'azure-busbuddy-connection'
+            appName: 'commuter-service-app'
             package: '$(Pipeline.Workspace)/$(artifactName)/*.jar'
