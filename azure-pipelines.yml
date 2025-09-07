@@ -13,13 +13,10 @@ pr:
     include:
       - main
 
-pool:
-  vmImage: 'ubuntu-latest'
-
 variables:
   javaVersion: '17'
   artifactName: 'commuter-service'
-  buildDir: '$(System.DefaultWorkingDirectory)/target'
+  buildDir: '$(Build.SourcesDirectory)/target'
 
 stages:
 # =========================
@@ -30,11 +27,13 @@ stages:
   jobs:
     - job: BuildJob
       displayName: 'Build Commuter Service'
+      pool:
+        vmImage: 'ubuntu-latest'
       steps:
         # Checkout code
-        - task: Checkout@1
+        - checkout: self
 
-        # Setup JDK
+        # Ensure JDK 17 is available
         - task: JavaToolInstaller@0
           inputs:
             versionSpec: '$(javaVersion)'
@@ -83,14 +82,14 @@ stages:
             buildType: 'current'
             downloadType: 'single'
             artifactName: '$(artifactName)'
-            downloadPath: '$(System.DefaultWorkingDirectory)'
+            downloadPath: '$(Pipeline.Workspace)'
 
         - task: AzureWebApp@1
           displayName: 'Deploy to Dev/Test App Service'
           inputs:
-            azureSubscription: 'azure-busbuddy-connection'
-            appName: 'commuter-service-app'
-            package: '$(System.DefaultWorkingDirectory)/$(artifactName)/*.jar'
+            azureSubscription: 'azure-busbuddy-connection'   # must match service connection name exactly
+            appName: 'commuter-service-app'                  # 👈 Dev/Test app service
+            package: '$(Pipeline.Workspace)/$(artifactName)/*.jar'
 
 
 # =========================
@@ -111,11 +110,11 @@ stages:
             buildType: 'current'
             downloadType: 'single'
             artifactName: '$(artifactName)'
-            downloadPath: '$(System.DefaultWorkingDirectory)'
+            downloadPath: '$(Pipeline.Workspace)'
 
         - task: AzureWebApp@1
           displayName: 'Deploy to Production App Service'
           inputs:
-            azureSubscription: 'azure-busbuddy-connection'
-            appName: 'commuter-service-app'
-            package: '$(System.DefaultWorkingDirectory)/$(artifactName)/*.jar'
+            azureSubscription: 'azure-busbuddy-connection'   # must match service connection name exactly
+            appName: 'commuter-service-app'                 # 👈 Prod app service
+            package: '$(Pipeline.Workspace)/$(artifactName)/*.jar'
