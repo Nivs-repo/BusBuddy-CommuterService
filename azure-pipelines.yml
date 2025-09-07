@@ -21,51 +21,60 @@ variables:
   artifactName: 'commuter-service'
   buildDir: '$(System.DefaultWorkingDirectory)/target'
 
-steps:
-  # 1️⃣ Checkout code
-  - task: Checkout@1
-
-  # 2️⃣ Setup JDK
-  - task: JavaToolInstaller@0
-    inputs:
-      versionSpec: '$(javaVersion)'
-      jdkArchitecture: 'x64'
-      jdkSourceOption: 'PreInstalled'
-
-  # 3️⃣ Cache Maven dependencies
-  - task: Cache@2
-    inputs:
-      key: 'maven | "$(Agent.OS)" | **/pom.xml'
-      restoreKeys: |
-        maven | "$(Agent.OS)"
-      path: ~/.m2/repository
-
-  # 4️⃣ Build with Maven
-  - task: Maven@3
-    displayName: 'Build with Maven'
-    inputs:
-      mavenPomFile: 'pom.xml'
-      goals: 'clean package -DskipTests'
-
-  # 5️⃣ Publish build artifact
-  - task: PublishBuildArtifacts@1
-    displayName: 'Publish Artifact'
-    inputs:
-      PathtoPublish: '$(buildDir)'
-      ArtifactName: '$(artifactName)'
-      publishLocation: 'Container'
-
-# =========================
-# Deployment Stage
-# =========================
 stages:
-- stage: DeployToAzure
-  displayName: 'Deploy Commuter Service'
-  dependsOn: []
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))  # only on main branch
+# =========================
+# 1️⃣ Build Stage
+# =========================
+- stage: Build
+  displayName: 'Build Stage'
   jobs:
-    - job: Deploy
-      displayName: 'Deploy to Azure App Service'
+    - job: BuildJob
+      displayName: 'Build Commuter Service'
+      steps:
+        # Checkout code
+        - task: Checkout@1
+
+        # Setup JDK
+        - task: JavaToolInstaller@0
+          inputs:
+            versionSpec: '$(javaVersion)'
+            jdkArchitecture: 'x64'
+            jdkSourceOption: 'PreInstalled'
+
+        # Cache Maven dependencies
+        - task: Cache@2
+          inputs:
+            key: 'maven | "$(Agent.OS)" | **/pom.xml'
+            restoreKeys: |
+              maven | "$(Agent.OS)"
+            path: ~/.m2/repository
+
+        # Build with Maven
+        - task: Maven@3
+          displayName: 'Build with Maven'
+          inputs:
+            mavenPomFile: 'pom.xml'
+            goals: 'clean package -DskipTests'
+
+        # Publish build artifact
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish Artifact'
+          inputs:
+            PathtoPublish: '$(buildDir)'
+            ArtifactName: '$(artifactName)'
+            publishLocation: 'Container'
+
+
+# =========================
+# 2️⃣ Deploy to Dev/Test (Feature Branches)
+# =========================
+- stage: DeployDev
+  displayName: 'Deploy to Dev/Test'
+  dependsOn: Build
+  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/heads/feature/'))
+  jobs:
+    - job: DeployDevJob
+      displayName: 'Deploy to Dev/Test App Service'
       pool:
         vmImage: 'ubuntu-latest'
       steps:
@@ -77,8 +86,36 @@ stages:
             downloadPath: '$(System.DefaultWorkingDirectory)'
 
         - task: AzureWebApp@1
-          displayName: 'Deploy to Azure App Service'
+          displayName: 'Deploy to Dev/Test App Service'
           inputs:
             azureSubscription: '<your-service-connection>'
-            appName: '<your-app-service-name>'
+            appName: '<your-dev-app-service-name>'
+            package: '$(System.DefaultWorkingDirectory)/$(artifactName)/*.jar'
+
+
+# =========================
+# 3️⃣ Deploy to Prod (Main Branch)
+# =========================
+- stage: DeployProd
+  displayName: 'Deploy to Production'
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+    - job: DeployProdJob
+      displayName: 'Deploy to Production App Service'
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - task: DownloadBuildArtifacts@1
+          inputs:
+            buildType: 'current'
+            downloadType: 'single'
+            artifactName: '$(artifactName)'
+            downloadPath: '$(System.DefaultWorkingDirectory)'
+
+        - task: AzureWebApp@1
+          displayName: 'Deploy to Production App Service'
+          inputs:
+            azureSubscription: '<your-service-connection>'
+            appName: '<your-prod-app-service-name>'
             package: '$(System.DefaultWorkingDirectory)/$(artifactName)/*.jar'
