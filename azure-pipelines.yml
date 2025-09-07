@@ -88,8 +88,8 @@ stages:
         - task: AzureWebApp@1
           displayName: 'Deploy to Dev/Test App Service'
           inputs:
-            azureSubscription: '<your-service-connection>'
-            appName: '<your-dev-app-service-name>'
+            azureSubscription: 'Nivs Azure subscription'
+            appName: 'commuter-service-app'
             package: '$(System.DefaultWorkingDirectory)/$(artifactName)/*.jar'
 
 
