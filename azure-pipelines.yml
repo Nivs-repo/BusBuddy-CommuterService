@@ -116,6 +116,6 @@ stages:
         - task: AzureWebApp@1
           displayName: 'Deploy to Production App Service'
           inputs:
-            azureSubscription: '<your-service-connection>'
-            appName: '<your-prod-app-service-name>'
+            azureSubscription: 'azure-busbuddy-connection'
+            appName: 'commuter-service-app'
             package: '$(System.DefaultWorkingDirectory)/$(artifactName)/*.jar'
