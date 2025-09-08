@@ -34,13 +34,6 @@ stages:
       steps:
         - checkout: self
 
-        # Ensure JDK 17 is available
-        - task: JavaToolInstaller@0
-          inputs:
-            versionSpec: '$(javaVersion)'
-            jdkArchitecture: 'x64'
-            jdkSourceOption: 'PreInstalled'
-
         # Cache Maven dependencies
         - task: Cache@2
           inputs:
