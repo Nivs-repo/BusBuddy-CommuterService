@@ -13,19 +13,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf().disable()
             .authorizeHttpRequests(auth -> auth
-                // allow auth APIs
-                .requestMatchers("/api/auth/**").permitAll()
-
-                // allow Swagger and API docs
-                .requestMatchers(
-                        "/swagger-ui/**",
-                        "/swagger-ui.html",
-                        "/v3/api-docs/**",
-                        "/v3/api-docs.yaml"
-                ).permitAll()
-
-                // everything else needs authentication
-                .anyRequest().authenticated()
+                .anyRequest().permitAll()   // 🚀 allow all requests
             );
 
         return http.build();
