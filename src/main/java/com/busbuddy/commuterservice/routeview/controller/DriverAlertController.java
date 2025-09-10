@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.busbuddy.commuterservice.common.util.ResponseBuilder;
@@ -22,6 +23,7 @@ public class DriverAlertController {
     private final DriverAlertService driverAlertService;
 
     @PostMapping
+    @PreAuthorize("hasRole('EMPLOYEE')")
     public ResponseEntity<?> raiseAlert(@Valid @RequestBody DriverAlertRequest request) {
         String message = driverAlertService.raiseDriverAlert(
                 request.getStopName(),
