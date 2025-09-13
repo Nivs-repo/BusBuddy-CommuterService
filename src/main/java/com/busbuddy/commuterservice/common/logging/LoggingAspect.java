@@ -11,30 +11,74 @@ import org.springframework.stereotype.Component;
 @Component
 public class LoggingAspect {
 
-    @Before("execution(* com.tcs.busbuddy..controller..*(..))")
-    public void logBefore(JoinPoint joinPoint) {
+    // ----------- CONTROLLER -----------
+    @Before("execution(* com.busbuddy.commuterservice..controller..*(..))")
+    public void logControllerBefore(JoinPoint joinPoint) {
+        logMethodEntry(joinPoint, "Controller");
+    }
+
+    @AfterReturning(value = "execution(* com.busbuddy.commuterservice..controller..*(..))", returning = "response")
+    public void logControllerAfterReturning(JoinPoint joinPoint, Object response) {
+        logMethodExit(joinPoint, "Controller", response);
+    }
+
+    // ----------- SERVICE -----------
+    @Before("execution(* com.busbuddy.commuterservice..service..*(..))")
+    public void logServiceBefore(JoinPoint joinPoint) {
+        logMethodEntry(joinPoint, "Service");
+    }
+
+    @AfterReturning(value = "execution(* com.busbuddy.commuterservice..service..*(..))", returning = "response")
+    public void logServiceAfterReturning(JoinPoint joinPoint, Object response) {
+        logMethodExit(joinPoint, "Service", response);
+    }
+
+    // ----------- REPOSITORY -----------
+    @Before("execution(* com.busbuddy.commuterservice..repository..*(..))")
+    public void logRepositoryBefore(JoinPoint joinPoint) {
+        logMethodEntry(joinPoint, "Repository");
+    }
+
+    @AfterReturning(value = "execution(* com.busbuddy.commuterservice..repository..*(..))", returning = "response")
+    public void logRepositoryAfterReturning(JoinPoint joinPoint, Object response) {
+        logMethodExit(joinPoint, "Repository", response);
+    }
+
+    // ----------- EXCEPTIONS (all layers) -----------
+    @AfterThrowing(value = "execution(* com.busbuddy.commuterservice..*(..))", throwing = "ex")
+    public void logException(JoinPoint joinPoint, Exception ex) {
         MethodSignature method = (MethodSignature) joinPoint.getSignature();
-        log.info("➡️ Incoming request: {}.{} args={}",
-                method.getDeclaringTypeName(),
-                method.getName(),
+        log.error("❌ Exception in {}.{}: {}", 
+                method.getDeclaringTypeName(), 
+                method.getName(), 
+                ex.getMessage(), ex);
+    }
+
+    // ----------- Helpers -----------
+    private void logMethodEntry(JoinPoint joinPoint, String layer) {
+        MethodSignature method = (MethodSignature) joinPoint.getSignature();
+        log.info("➡ [{}] Entering {}.{} args={}", 
+                layer, 
+                method.getDeclaringTypeName(), 
+                method.getName(), 
                 joinPoint.getArgs());
     }
 
-    @AfterReturning(value = "execution(* com.tcs.busbuddy..controller..*(..))", returning = "response")
-    public void logAfterReturning(JoinPoint joinPoint, Object response) {
+    private void logMethodExit(JoinPoint joinPoint, String layer, Object response) {
         MethodSignature method = (MethodSignature) joinPoint.getSignature();
-        log.info("✅ Response from {}.{}: {}",
-                method.getDeclaringTypeName(),
-                method.getName(),
-                response);
-    }
-
-    @AfterThrowing(value = "execution(* com.tcs.busbuddy..*(..))", throwing = "ex")
-    public void logException(JoinPoint joinPoint, Exception ex) {
-        MethodSignature method = (MethodSignature) joinPoint.getSignature();
-        log.error("❌ Exception in {}.{}: {}",
-                method.getDeclaringTypeName(),
-                method.getName(),
-                ex.getMessage(), ex);
+        // For repositories, avoid logging full list/objects
+        if ("Repository".equals(layer) && response instanceof java.util.Collection) {
+            log.info("⬅ [{}] Exiting {}.{} returned {} records", 
+                    layer, 
+                    method.getDeclaringTypeName(), 
+                    method.getName(), 
+                    ((java.util.Collection<?>) response).size());
+        } else {
+            log.info("⬅ [{}] Exiting {}.{} response={}", 
+                    layer, 
+                    method.getDeclaringTypeName(), 
+                    method.getName(), 
+                    response);
+        }
     }
 }
